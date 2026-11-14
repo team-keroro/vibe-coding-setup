@@ -71,7 +71,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubus
 
 #### 끝나면
 
-창에 **"설치가 모두 끝났어요!"** 와 버전 세 줄이 나오면 성공! 캡처해 두세요.
+창에 **MISSION COMPLETE** (맥은 **"설치가 모두 끝났어요!"**) 와 버전 세 줄이 나오면 성공! 캡처해 두세요.
 
 ```
 node -v            → v22.23.5
@@ -133,8 +133,36 @@ firebase --version → 15.36.0
 | --- | --- |
 | [`setup-windows.ps1`](setup-windows.ps1) | 윈도우용. 없는 것만 설치해요: Claude 앱(downloads.claude.ai 공식 설치 파일), Git(git-for-windows 공식 설치 파일), Node.js 22(nodejs.org 공식 MSI), Firebase CLI(`npm install -g firebase-tools`). 그다음 `firebase login` 실행, Claude 설정 켜기, Firebase 콘솔 열기 |
 | [`setup-mac.sh`](setup-mac.sh) | 맥용. Git(Xcode 명령어 라인 도구), Node.js 22(nodejs.org 공식 .pkg), Firebase CLI, Claude 앱(downloads.claude.ai 공식 파일) 순서로 없는 것만 설치하고 나머지는 윈도우와 같아요. Homebrew 는 쓰지 않아요 |
-| [`setup-windows.cmd`](setup-windows.cmd), [`setup-mac.command`](setup-mac.command) | (선택) 위 한 줄 명령이 권장 방법이에요. 파일로 받아 더블클릭하고 싶으면 이 저장소를 ZIP 으로 받아 압축을 푼 폴더에서 실행하세요. 맥에서 "확인할 수 없음" 창이 뜨면 [완료] → 시스템 설정 → 개인정보 보호 및 보안 → 맨 아래 [그래도 열기] |
+| [`reset-windows.ps1`](reset-windows.ps1) | 윈도우용 되돌리기. 체크박스로 고른 것만 지워요: Firebase 로그인 해제, Firebase CLI, Node.js(+ npm 전역 폴더), Git, "권한 우회 모드 허용" 끄기, Claude 앱, Claude 앱 데이터. 지우기 전에 한 번 더 물어봐요 |
+| [`setup-windows.cmd`](setup-windows.cmd), [`reset-windows.cmd`](reset-windows.cmd), [`setup-mac.command`](setup-mac.command) | (선택) 위 한 줄 명령이 권장 방법이에요. 파일로 받아 더블클릭하고 싶으면 이 저장소를 ZIP 으로 받아 압축을 푼 폴더에서 실행하세요. 맥에서 "확인할 수 없음" 창이 뜨면 [완료] → 시스템 설정 → 개인정보 보호 및 보안 → 맨 아래 [그래도 열기] |
 
 **Claude 설정 변경에 대해:** 스크립트는 Claude 앱의 설정 파일 `claude_desktop_config.json` 에서 `preferences.bypassPermissionsModeEnabled` 값 하나만 `true` 로 바꿔요. 바꾸기 전 파일은 같은 폴더에 `.bak` 으로 남겨 둬요. 이 값은 설정 화면의 "권한 우회 모드 허용" 스위치와 같아요. 실제로 그 모드를 쓸지는 Claude 앱에서 직접 고르고, 처음 고를 때 앱이 보여 주는 경고도 직접 확인하게 돼요.
 
 모든 설치 파일은 각 프로그램의 공식 서버에서 직접 받아요. 내용이 궁금하면 위 파일을 열어 보세요.
+
+---
+
+## 🧹 다 지우고 처음으로 되돌리고 싶으면 (윈도우)
+
+설치 스크립트로 깐 것들을 지우는 스크립트예요. 수업이 끝나고 정리하고 싶을 때나, 처음부터 다시 설치해 보고 싶을 때 쓰세요.
+
+1. **윈도우 키(⊞) + R** → 아래 한 줄을 붙여 넣고 **[확인]**
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/team-keroro/vibe-coding-setup/main/reset-windows.ps1 | iex"
+```
+
+2. 화살표 키(↑↓)로 고르고 **엔터**
+   - **전부 삭제** — Claude 앱까지 모두 지워요
+   - **Claude 빼고 삭제** — Claude 앱과 로그인은 그대로 두고 나머지만 지워요
+   - **직접 고르기** — 지울 것만 하나씩 체크해요
+3. 다음 화면에서 **스페이스바**로 체크를 켜고 끌 수 있어요 → **엔터**
+4. **"정말 지울까요?"** 에 **`y`** → 지우기 시작해요 (Node.js, Git 을 지울 때 **[예]** 창이 한 번씩 떠요)
+
+- 지운 건 되돌릴 수 없어요. 다시 쓰려면 위의 설치 스크립트를 한 번 더 실행하면 돼요
+- 그만두려면 **`Q`** 를 누르세요. 아무것도 지우지 않아요
+- 지우지 않고 화면만 미리 보고 싶으면:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:VIBE_DEMO='1'; irm https://raw.githubusercontent.com/team-keroro/vibe-coding-setup/main/reset-windows.ps1 | iex"
+```
