@@ -273,6 +273,8 @@
       $code = Wait-Process-Ui $p "Git $($e.DisplayVersion) 지우는 중"
       if ($code -ne 0) { throw "Git 을 지우지 못했어요 (코드 $code)." }
     }
+    # The Inno Setup uninstaller relaunches itself from TEMP, so wait until the entry is really gone.
+    if ($entries.Count -gt 0) { [void](Spin-Until 'Git 제거 마무리 중' { @(Find-Git).Count -eq 0 } 120) }
   }
 
   # Turns preferences.bypassPermissionsModeEnabled back off. Every other setting is kept.
