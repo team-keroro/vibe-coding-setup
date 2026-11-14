@@ -1,7 +1,10 @@
 #!/bin/bash
 # Vibe coding lecture setup for macOS — everything in one run.
-# 1) Git (Xcode Command Line Tools)  2) Node.js 22  3) Firebase CLI  4) Claude desktop app
-# 5) firebase login  6) Claude setting "allow bypass permissions mode"  7) open the Firebase console
+# First asks which AI tool the attendee uses: Claude or Codex.
+# 1) Git (Xcode Command Line Tools)  2) Node.js 22  3) Firebase CLI  4) Claude desktop app / ChatGPT app with Codex
+# 5) firebase login  6) Claude "allow bypass permissions mode" / Codex full access in ~/.codex/config.toml
+# 7) open the Firebase console. Anything already installed is detected and skipped.
+# Skip the question with VIBE_TOOL=claude or VIBE_TOOL=codex.
 #
 # Run in Terminal:
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/team-keroro/vibe-coding-setup/main/setup-mac.sh)"
@@ -15,6 +18,9 @@ NODE_MAJOR_WANTED=22
 NODE_MAJOR_MIN=20
 NPM_GLOBAL="$HOME/.npm-global"
 CLAUDE_CONFIG_DIR="$HOME/Library/Application Support/Claude"
+CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
+TOOL="${VIBE_TOOL:-}"
+case "$TOOL" in claude|codex) ;; *) TOOL='' ;; esac
 
 cyan()   { printf '\033[36m%s\033[0m\n' "$*"; }
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -27,7 +33,7 @@ warn()   { yellow "  [!] $*"; }
 fail() {
   echo
   red "  [X] 문제가 생겼어요: $*"
-  red '  이 창을 캡처해서 Claude 앱에 "이런 화면이 나왔어. 어떻게 해?" 라고 물어보세요.'
+  red "  이 창을 캡처해서 $([ "$TOOL" = codex ] && echo ChatGPT || echo Claude) 앱에 \"이런 화면이 나왔어. 어떻게 해?\" 라고 물어보세요."
   red '  한 번 더 실행해도 괜찮아요. 이미 끝난 단계는 건너뛰어요.'
   red '  그래도 안 되면 단톡방에 캡처와 함께 남겨 주세요.'
   exit 1
@@ -76,6 +82,58 @@ install_claude() {
   claude_app >/dev/null || fail 'Claude 앱을 찾지 못했어요.'
 }
 
+# The Codex app now ships as ChatGPT.app (Codex built in); older builds were Codex.app.
+# The old ChatGPT-only app (versions 1.x) has the same name, so require version 26 or later.
+codex_app() {
+  local p v
+  for p in "/Applications/Codex.app" "$HOME/Applications/Codex.app"; do
+    [ -d "$p" ] && { echo "$p"; return 0; }
+  done
+  for p in "/Applications/ChatGPT.app" "$HOME/Applications/ChatGPT.app"; do
+    [ -d "$p" ] || continue
+    v=$(defaults read "$p/Contents/Info" CFBundleShortVersionString 2>/dev/null)
+    [ "${v%%.*}" -ge 26 ] 2>/dev/null && { echo "$p"; return 0; }
+  done
+  return 1
+}
+
+app_version() { defaults read "$1/Contents/Info" CFBundleShortVersionString 2>/dev/null; }
+
+install_codex() {
+  # Homebrew's "chatgpt" cask carries the current official download URL (no Homebrew needed).
+  local url dest
+  url=$(curl -fsSL https://formulae.brew.sh/api/cask/chatgpt.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).url)}catch(e){}})')
+  [ "$(uname -m)" = arm64 ] || url="${url/darwin-arm64/darwin-x64}"
+  if [ -n "$url" ]; then
+    echo "  내려받는 중: ChatGPT 앱 (Codex 포함, 수백 MB 라 몇 분 걸려요)"
+    if curl -fL --progress-bar -o /tmp/ChatGPT.zip "$url"; then
+      dest="/Applications"
+      [ -w "$dest" ] || { dest="$HOME/Applications"; mkdir -p "$dest"; }
+      rm -rf "$dest/ChatGPT.app"
+      ditto -xk /tmp/ChatGPT.zip "$dest" && rm -f /tmp/ChatGPT.zip && codex_app >/dev/null && return 0
+    fi
+  fi
+  warn '자동 설치가 안 됐어요. 브라우저에서 ChatGPT 다운로드 페이지를 열게요.'
+  warn '맥용 앱을 받아 열고, ChatGPT 를 "응용 프로그램" 폴더로 옮겨 주세요.'
+  open 'https://chatgpt.com/download/'
+  read -r -p '  설치가 끝나면 여기로 돌아와서 엔터 '
+  codex_app >/dev/null || fail 'ChatGPT(Codex) 앱을 찾지 못했어요.'
+}
+
+# Codex equivalent of the bypass setting: top-level approval_policy = "never" and
+# sandbox_mode = "danger-full-access" in config.toml. Other settings are kept; a .bak copy is kept.
+enable_codex_full_access() {
+  pkill -x ChatGPT >/dev/null 2>&1; pkill -x Codex >/dev/null 2>&1; sleep 1
+  mkdir -p "$CODEX_DIR" || return 1
+  local f="$CODEX_DIR/config.toml" src
+  src=/dev/null
+  [ -f "$f" ] && { cp "$f" "$f.bak" || return 1; src="$f.bak"; }
+  awk 'BEGIN { print "approval_policy = \"never\""; print "sandbox_mode = \"danger-full-access\"" }
+       /^[[:space:]]*\[/ { t = 1 }
+       !t && /^[[:space:]]*(approval_policy|sandbox_mode)[[:space:]]*=/ { next }
+       { print }' "$src" > "$f.tmp" && mv "$f.tmp" "$f"
+}
+
 # Sets preferences.bypassPermissionsModeEnabled = true in claude_desktop_config.json.
 # Only this one key is touched; a .bak copy is kept. The per-account warning consent is left to the app.
 enable_bypass_setting() {
@@ -98,6 +156,21 @@ cyan '================================================'
 cyan '  바이브 코딩 특강 준비를 시작해요 (맥)'
 cyan '  15분쯤 걸려요. 창을 닫지 말고 기다려 주세요.'
 cyan '================================================'
+
+if [ -z "$TOOL" ]; then
+  echo
+  echo '  어떤 AI 도구로 수업을 들으세요?'
+  echo '    1) Claude   (Anthropic - Claude 데스크톱 앱)'
+  echo '    2) Codex    (OpenAI - ChatGPT 앱 안의 Codex)'
+  while :; do
+    read -r -p '  번호를 치고 엔터 (1 또는 2): ' ans
+    case "$ans" in
+      1) TOOL=claude; break ;;
+      2) TOOL=codex; break ;;
+    esac
+  done
+fi
+if [ "$TOOL" = codex ]; then ok 'Codex 로 준비할게요'; else ok 'Claude 로 준비할게요'; fi
 
 # 1. Git via Xcode Command Line Tools. /usr/bin/git exists as a stub even without them, so check xcode-select.
 step 1 'Git'
@@ -157,8 +230,13 @@ else
 fi
 
 # 4. Claude desktop app.
-step 4 'Claude 데스크톱 앱'
-if claude_app >/dev/null; then ok '이미 설치되어 있어요'; else install_claude; ok '설치 완료'; fi
+if [ "$TOOL" = codex ]; then
+  step 4 'ChatGPT 앱 (Codex)'
+  if app=$(codex_app); then ok "이미 설치되어 있어요: $(basename "$app") $(app_version "$app")"; else install_codex; ok '설치 완료'; fi
+else
+  step 4 'Claude 데스크톱 앱'
+  if app=$(claude_app); then ok "이미 설치되어 있어요: $(app_version "$app")"; else install_claude; ok '설치 완료'; fi
+fi
 
 # 5. Interactive Firebase login in this window.
 step 5 'Firebase 로그인'
@@ -170,10 +248,17 @@ echo
 firebase login || fail 'Firebase 로그인이 끝나지 않았어요.'
 
 # 6. Claude setting.
-step 6 'Claude 설정: "권한 우회 모드 허용" 켜기'
-echo '  Claude 앱을 잠깐 껐다가 다시 켤게요.'
-if enable_bypass_setting; then ok '설정 완료'; else warn '자동 설정이 안 됐어요. 안내문 4번 그림대로 직접 켜 주세요.'; fi
-app=$(claude_app) && open "$app"
+if [ "$TOOL" = codex ]; then
+  step 6 'Codex 설정: 승인 없이 실행 (Full access)'
+  echo '  ChatGPT 앱이 켜져 있으면 잠깐 껐다가 다시 켤게요.'
+  if enable_codex_full_access; then ok '설정 완료'; else warn '자동 설정이 안 됐어요. Codex 입력창 아래 권한을 Full access 로 바꿔 주세요.'; fi
+  app=$(codex_app) && open "$app"
+else
+  step 6 'Claude 설정: "권한 우회 모드 허용" 켜기'
+  echo '  Claude 앱을 잠깐 껐다가 다시 켤게요.'
+  if enable_bypass_setting; then ok '설정 완료'; else warn '자동 설정이 안 됐어요. 안내문 4번 그림대로 직접 켜 주세요.'; fi
+  app=$(claude_app) && open "$app"
+fi
 
 # 7. Firebase console terms.
 step 7 'Firebase 약관 동의'
@@ -187,7 +272,13 @@ green "    node -v            → $(node -v)"
 green "    git --version      → $(git --version)"
 green "    firebase --version → $(firebase --version)"
 echo
-green '  남은 일은 두 가지예요:'
-green '    - 방금 열린 Claude 앱에 로그인하기 (유료 구독 계정)'
-green '    - 브라우저의 Firebase 콘솔에서 약관 동의하기'
+green '  남은 일:'
+if [ "$TOOL" = codex ]; then
+  green '    - 방금 열린 ChatGPT 앱에 로그인하기 (유료 ChatGPT 계정) → 앱에서 Codex 고르기'
+  green '    - 브라우저의 Firebase 콘솔에서 약관 동의하기'
+  green "    - Codex 입력창 아래 권한이 'Full access' 인지 확인"
+else
+  green '    - 방금 열린 Claude 앱에 로그인하기 (유료 구독 계정)'
+  green '    - 브라우저의 Firebase 콘솔에서 약관 동의하기'
+fi
 green '================================================'

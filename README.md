@@ -17,22 +17,24 @@
 
 - 태블릿, 크롬북은 따라 하기 어려워요
 
-### 2. Claude 유료 구독 (Pro 또는 Max)
+### 2. AI 도구 유료 구독 — Claude 또는 Codex 중 하나
 
-- 무료 플랜으로는 Claude Code를 쓸 수 없어요
-- 구독하기: https://claude.com/pricing
+- **Claude** — Pro 또는 Max. 무료 플랜으로는 Claude Code를 쓸 수 없어요 (https://claude.com/pricing)
+- **Codex** — ChatGPT 유료 플랜 (Plus 이상). Codex 는 ChatGPT 앱 안에 들어 있어요
+- 수업 화면은 Claude 로 보여 드려요. Codex 도 같은 흐름으로 따라올 수 있어요
 
 ### 3. 설치 스크립트 한 번 실행하기
 
 명령 한 줄이 아래 일을 **처음부터 끝까지 한 번에** 해 줘요.
 
-1. Claude 데스크톱 앱 설치
+0. 처음에 **Claude / Codex** 중 내가 쓸 도구를 골라요 (↑↓ + 엔터, 또는 숫자 1 / 2)
+1. Claude 데스크톱 앱 또는 ChatGPT 앱(Codex 포함) 설치
 2. Git, Node.js 22, Firebase CLI 설치
 3. Firebase 로그인
-4. Claude 설정 "권한 우회 모드 허용" 켜기
+4. 묻지 않고 실행하도록 설정 — Claude 는 "권한 우회 모드 허용", Codex 는 Full access
 5. Firebase 콘솔 열기 (약관 동의용)
 
-이미 설치된 건 건너뛰니까 **여러 번 실행해도 괜찮아요.**
+이미 설치된 건 버전을 확인하고 건너뛰니까 **여러 번 실행해도 괜찮아요.**
 
 #### 윈도우
 
@@ -105,6 +107,12 @@ firebase --version → 15.36.0
 - [ ] **버전 세 줄 캡처해 두기** — 수업 때 막히면 이걸 보여 주시면 돼요
 - [ ] **수업 당일 줌 + Claude 앱 켜 두기**
 
+**Codex 를 고른 분은** 위 Claude 항목 대신 이렇게 해 주세요.
+
+- [ ] **ChatGPT 앱에 로그인하기** — 유료 ChatGPT 계정으로. 앱에서 **Codex** 를 고르세요
+- [ ] **Codex 권한 확인하기** — Codex 입력창 아래 권한이 **Full access** 인지 봐 주세요. 스크립트가 `~/.codex/config.toml` 에 `approval_policy = "never"`, `sandbox_mode = "danger-full-access"` 를 넣어 둬요 (원래 파일은 `.bak` 으로 남겨요). 이것도 수업용 폴더에서만 쓰세요
+- [ ] **수업 당일 줌 + ChatGPT 앱(Codex) 켜 두기**
+
 ---
 
 ## 🙅 필요 없는 것
@@ -131,8 +139,8 @@ firebase --version → 15.36.0
 
 | 파일 | 하는 일 |
 | --- | --- |
-| [`setup-windows.ps1`](setup-windows.ps1) | 윈도우용. 없는 것만 설치해요: Claude 앱(downloads.claude.ai 공식 설치 파일), Git(git-for-windows 공식 설치 파일), Node.js 22(nodejs.org 공식 MSI), Firebase CLI(`npm install -g firebase-tools`). 그다음 `firebase login` 실행, Claude 설정 켜기, Firebase 콘솔 열기 |
-| [`setup-mac.sh`](setup-mac.sh) | 맥용. Git(Xcode 명령어 라인 도구), Node.js 22(nodejs.org 공식 .pkg), Firebase CLI, Claude 앱(downloads.claude.ai 공식 파일) 순서로 없는 것만 설치하고 나머지는 윈도우와 같아요. Homebrew 는 쓰지 않아요 |
+| [`setup-windows.ps1`](setup-windows.ps1) | 윈도우용. 먼저 Claude / Codex 를 고르고, 없는 것만 설치해요: Claude 앱(downloads.claude.ai 공식 설치 파일) 또는 ChatGPT 앱(Codex 포함, Microsoft Store `9PLM9XGG6VKS`), Git(git-for-windows 공식 설치 파일), Node.js 22(nodejs.org 공식 MSI), Firebase CLI(`npm install -g firebase-tools`). 그다음 `firebase login` 실행, Claude 설정 켜기, Firebase 콘솔 열기 |
+| [`setup-mac.sh`](setup-mac.sh) | 맥용. Git(Xcode 명령어 라인 도구), Node.js 22(nodejs.org 공식 .pkg), Firebase CLI, Claude 앱(downloads.claude.ai 공식 파일) 또는 ChatGPT 앱(Codex 포함, OpenAI 공식 파일) 순서로 없는 것만 설치하고 나머지는 윈도우와 같아요. Homebrew 는 쓰지 않아요 |
 | [`reset-windows.ps1`](reset-windows.ps1) | 윈도우용 되돌리기. 체크박스로 고른 것만 지워요: Firebase 로그인 해제, Firebase CLI, Node.js(+ npm 전역 폴더), Git, "권한 우회 모드 허용" 끄기, Claude 앱, Claude 앱 데이터. 지우기 전에 한 번 더 물어봐요 |
 | [`setup-windows.cmd`](setup-windows.cmd), [`reset-windows.cmd`](reset-windows.cmd), [`setup-mac.command`](setup-mac.command) | (선택) 위 한 줄 명령이 권장 방법이에요. 파일로 받아 더블클릭하고 싶으면 이 저장소를 ZIP 으로 받아 압축을 푼 폴더에서 실행하세요. 맥에서 "확인할 수 없음" 창이 뜨면 [완료] → 시스템 설정 → 개인정보 보호 및 보안 → 맨 아래 [그래도 열기] |
 

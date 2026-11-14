@@ -1,6 +1,10 @@
 # VIBE CODE SETUP for Windows 10/11 — everything in one run, as a full-screen terminal dashboard.
-# 1) Claude desktop app  2) Git  3) Node.js 22  4) Firebase CLI  5) firebase login
-# 6) Claude setting "allow bypass permissions mode"  7) open the Firebase console for the terms
+# First asks which AI tool the attendee uses: Claude or Codex.
+# 1) Claude desktop app / ChatGPT app with Codex  2) Git  3) Node.js 22  4) Firebase CLI  5) firebase login
+# 6) Claude "allow bypass permissions mode" / Codex full access in ~/.codex/config.toml  7) open the Firebase console
+# Anything already installed is detected and skipped.
+#
+# Skip the question with $env:VIBE_TOOL='claude' or 'codex'.
 #
 # Run (Win + R, paste, Enter):
 #   powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/team-keroro/vibe-coding-setup/main/setup-windows.ps1 | iex"
@@ -16,6 +20,8 @@
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
   $Demo = ($env:VIBE_DEMO -eq '1')
+  $Tool = if ($env:VIBE_TOOL -match '^(claude|codex)$') { $env:VIBE_TOOL.ToLower() } else { '' }
+  $CodexStoreId = '9PLM9XGG6VKS'
   $Total = 7
   $NodeMajorWanted = 22
   $NodeMajorMin = 20
@@ -70,6 +76,7 @@
   $Star = if ($Fancy) { '✦' } else { '*' }
   $Times = if ($Fancy) { '×' } else { 'x' }
   $Ell = if ($Fancy) { '…' } else { '.' }
+  $Ptr = if ($Fancy) { '❯' } else { '>' }
 
   $LogoVibe = @(
     '██╗   ██╗██╗██████╗ ███████╗   ██████╗ ██████╗ ██████╗ ███████╗',
@@ -207,7 +214,7 @@
 
   function Draw-Header {
     for ($i = 0; $i -lt $U.Logo.Count; $i++) { Put ($U.RowLogo + $i) ('  ' + (Logo-Line $U.Logo[$i])) }
-    Put $U.RowSub "  $Pk$Bold$Subtitle$R   $Gy v3.1 $Mid Windows$R"
+    Put $U.RowSub "  $Pk$Bold$Subtitle$R   $Gy v3.2 $Mid Windows$(if ($Tool) { " $Mid $($Tool.ToUpper())" })$R"
     Put ($U.RowSub + 1) ('  ' + (Gradient $Credit 3))
   }
 
@@ -437,12 +444,63 @@
     # 3) subtitle types in, credit fades in
     W "$E[$($U.RowSub);1H$E[2K  $Pk$Bold"
     foreach ($ch in $Subtitle.ToCharArray()) { W $ch; Start-Sleep -Milliseconds 7 }
-    W "$R   $Gy v3.1 $Mid Windows$R"
+    W "$R   $Gy v3.2 $Mid Windows$R"
     foreach ($g in @(236, 239, 242, 245, 249, 253)) {
       Put ($U.RowSub + 1) "  $E[38;5;${g}m$Credit$R"
       Start-Sleep -Milliseconds 40
     }
     Put ($U.RowSub + 1) ('  ' + (Gradient $Credit 3))
+  }
+
+  # ======================================================================
+  #  Tool picker: Claude or Codex
+  # ======================================================================
+  function Choose-Tool {
+    $opts = @(
+      @{ Key = 'claude'; Name = 'Claude'; Desc = "Anthropic $Mid Claude 데스크톱 앱" },
+      @{ Key = 'codex'; Name = 'Codex'; Desc = "OpenAI $Mid ChatGPT 앱 안의 Codex" }
+    )
+    if (-not $Vt) {
+      WL ''; WL '  어떤 AI 도구로 수업을 들으세요?'
+      WL '    1) Claude   (Anthropic - Claude 데스크톱 앱)'
+      WL '    2) Codex    (OpenAI - ChatGPT 앱 안의 Codex)'
+      while ($true) {
+        $a = (Read-Host '  번호를 치고 엔터 (1 또는 2)').Trim()
+        if ($a -eq '1') { return 'claude' }
+        if ($a -eq '2') { return 'codex' }
+      }
+    }
+    $sel = 0
+    $top = $U.RowSeq
+    while ($true) {
+      Put $top "  $Bl$Bold$Dot 어떤 AI 도구로 수업을 들으세요?$R"
+      Put ($top + 1) ''
+      for ($i = 0; $i -lt $opts.Count; $i++) {
+        $o = $opts[$i]
+        if ($i -eq $sel) { $line = "    $Cy$Bold$Ptr $($i + 1)  $($o.Name.PadRight(8))$R  $Wh$($o.Desc)$R" }
+        else { $line = "      $Gy$($i + 1)  $($o.Name.PadRight(8))  $($o.Desc)$R" }
+        Put ($top + 2 + $i) $line
+      }
+      Put ($top + 2 + $opts.Count) ''
+      Put ($top + 3 + $opts.Count) "  $Dim$Gy↑↓ 로 고르고 엔터 $Mid 숫자 1 / 2 를 눌러도 돼요$R"
+      try { $k = [Console]::ReadKey($true) } catch {
+        $a = (Read-Host '  번호를 치고 엔터 (1 또는 2)').Trim()
+        if ($a -eq '2') { return 'codex' } else { return 'claude' }
+      }
+      switch ($k.Key) {
+        'UpArrow'   { $sel = 0; continue }
+        'DownArrow' { $sel = 1; continue }
+        'Enter'     { W "$E[$top;1H$E[J"; return $opts[$sel].Key }
+        'D1'        { W "$E[$top;1H$E[J"; return 'claude' }
+        'NumPad1'   { W "$E[$top;1H$E[J"; return 'claude' }
+        'D2'        { W "$E[$top;1H$E[J"; return 'codex' }
+        'NumPad2'   { W "$E[$top;1H$E[J"; return 'codex' }
+      }
+      switch ([string]$k.KeyChar) {
+        'k' { $sel = 0 }
+        'j' { $sel = 1 }
+      }
+    }
   }
 
   # ======================================================================
@@ -468,6 +526,51 @@
     if ($pkg) { return @{ Kind = 'msix'; Package = $pkg } }
     return $null
   }
+  # The Codex app ships as the "ChatGPT desktop app" in the Microsoft Store (product 9PLM9XGG6VKS).
+  # The older ChatGPT-only app is a different Store product, so match the product id through winget first.
+  function Find-Codex {
+    $pkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { $_.Publisher -like '*OpenAI*' })
+    $pkg = $pkgs | Where-Object { $_.Name -like '*Codex*' } | Select-Object -First 1
+    if ($pkg) { return @{ Kind = 'msix'; Package = $pkg } }
+    if ($pkgs.Count -gt 0 -and (Has 'winget')) {
+      $out = (& winget list --id $CodexStoreId --accept-source-agreements --disable-interactivity 2>$null) -join "`n"
+      if ($out -match $CodexStoreId) {
+        $pkg = $pkgs | Sort-Object { -[int]($_.Name -like '*ChatGPT*') } | Select-Object -First 1
+        return @{ Kind = 'msix'; Package = $pkg }
+      }
+    }
+    return $null
+  }
+  function Start-App($app, $name) {
+    try {
+      if ($app.Kind -eq 'exe') { Start-Process -FilePath $app.Path }
+      else {
+        $appId = ($app.Package | Get-AppxPackageManifest).Package.Applications.Application.Id | Select-Object -First 1
+        Start-Process "shell:AppsFolder\$($app.Package.PackageFamilyName)!$appId"
+      }
+    } catch { Warn "시작 메뉴에서 `"$name`" 을 찾아 직접 열어 주세요." }
+  }
+  function Install-Codex {
+    if ($Demo) { Demo-Wait 'Microsoft Store 에서 설치 중' 4; return }
+    if (Has 'winget') {
+      Info 'Microsoft Store 에서 ChatGPT 앱(Codex 포함)을 설치할게요'
+      $log = Join-Path $env:TEMP 'vibe-codex-winget.log'
+      try {
+        $p = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "winget install --id $CodexStoreId -s msstore --accept-package-agreements --accept-source-agreements --disable-interactivity > `"$log`" 2>&1" -WindowStyle Hidden -PassThru
+        $null = $p.Handle
+        [void](Wait-Process-Ui $p 'Microsoft Store 에서 설치 중')
+      } catch { Warn "자동 설치가 안 됐어요: $($_.Exception.Message)" }
+      if (Find-Codex) { return }
+      Get-Content $log -Tail 4 -ErrorAction SilentlyContinue | Where-Object { $_.Trim() } | ForEach-Object { Info $_ }
+    }
+    Suspend-Ui 'CODEX APP'
+    WL "  ${Ye}Microsoft Store 에서 ChatGPT 앱 페이지를 열게요. [받기] 또는 [설치] 를 눌러 주세요.$R"
+    try { Start-Process "ms-windows-store://pdp/?ProductId=$CodexStoreId" } catch { Start-Process "https://apps.microsoft.com/detail/$CodexStoreId" }
+    [void](Read-Host '  설치가 끝나면 여기로 돌아와서 엔터')
+    Resume-Ui
+    if (-not (Find-Codex)) { throw 'ChatGPT(Codex) 앱을 찾지 못했어요.' }
+  }
+
   function Start-Claude($app) {
     try {
       if ($app.Kind -eq 'exe') { Start-Process -FilePath $app.Path }
@@ -580,6 +683,35 @@
     return $done
   }
 
+  # Codex equivalent of the bypass setting: top-level approval_policy = "never" and
+  # sandbox_mode = "danger-full-access" in config.toml. Other settings are kept; a .bak copy is kept.
+  function Enable-CodexFullAccess {
+    if ($Demo) { Demo-Wait '설정 파일 고치는 중' 1; return $true }
+    try {
+      Get-Process -Name 'Codex', 'ChatGPT' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+      Start-Sleep -Seconds 1
+      $dir = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+      New-Item -ItemType Directory -Force -Path $dir | Out-Null
+      $f = Join-Path $dir 'config.toml'
+      $lines = @()
+      if (Test-Path $f) {
+        Copy-Item $f "$f.bak" -Force
+        $lines = @([IO.File]::ReadAllLines($f, [Text.Encoding]::UTF8))
+      }
+      $out = New-Object Collections.Generic.List[string]
+      $out.Add('approval_policy = "never"')
+      $out.Add('sandbox_mode = "danger-full-access"')
+      $inTable = $false
+      foreach ($l in $lines) {
+        if ($l -match '^\s*\[') { $inTable = $true }
+        if (-not $inTable -and $l -match '^\s*(approval_policy|sandbox_mode)\s*=') { continue }
+        $out.Add($l)
+      }
+      [IO.File]::WriteAllLines($f, $out, (New-Object Text.UTF8Encoding $false))
+      return $true
+    } catch { Log-Add 'warn' "설정 파일을 고치지 못했어요: $($_.Exception.Message)"; return $false }
+  }
+
   function Ver($cmd, $arg = '--version') {
     if ($Demo) { switch ($cmd) { 'node' { return 'v22.23.5' } 'git' { return 'git version 2.56.1.windows.1' } default { return '15.36.0' } } }
     try { return ((& $cmd $arg) 2>$null | Select-Object -First 1) } catch { return '?' }
@@ -606,9 +738,15 @@
     WL "    $Gy firebase --version $R${Cy}→ $(Ver 'firebase.cmd')$R"
     WL ''
     WL "  $Pk$Bold$Dot 이제 직접 할 일$R"
-    WL "    $Pk$Box$R Claude 앱에 로그인하기 (유료 구독 계정)"
-    WL "    $Pk$Box$R 브라우저의 Firebase 콘솔에서 약관 동의하기"
-    WL "    $Pk$Box$R Claude 설정 → Claude Code → '권한 우회 모드 허용' 켜졌는지 확인"
+    if ($Tool -eq 'codex') {
+      WL "    $Pk$Box$R ChatGPT 앱에 로그인하기 (유료 ChatGPT 계정) → 앱에서 Codex 고르기"
+      WL "    $Pk$Box$R 브라우저의 Firebase 콘솔에서 약관 동의하기"
+      WL "    $Pk$Box$R Codex 입력창 아래 권한이 'Full access' 인지 확인"
+    } else {
+      WL "    $Pk$Box$R Claude 앱에 로그인하기 (유료 구독 계정)"
+      WL "    $Pk$Box$R 브라우저의 Firebase 콘솔에서 약관 동의하기"
+      WL "    $Pk$Box$R Claude 설정 → Claude Code → '권한 우회 모드 허용' 켜졌는지 확인"
+    }
     WL ''
     WL "  ${Gy}총 소요 시간 $(Fmt-Time $Clock.ElapsedMilliseconds) $Mid 수업 날 뵙겠습니다!$R"
   }
@@ -620,9 +758,12 @@
     Cursor $false
     Layout
     Intro
-    if ($Vt) { Draw-Body }
+    if (-not $Tool) { $Tool = Choose-Tool }
+    $IsCodex = ($Tool -eq 'codex')
+    if ($IsCodex) { $Steps[0].Title = 'CODEX APP'; $Steps[5].Title = 'CODEX FULL ACCESS' }
+    if ($Vt) { Draw-Header; Draw-Body }
 
-    foreach ($l in @("> initializing vibe setup sequence", "> loading modules: claude $Mid git $Mid node $Mid firebase", "> establishing secure link to official servers")) {
+    foreach ($l in @("> initializing vibe setup sequence", "> loading modules: $Tool $Mid git $Mid node $Mid firebase", "> establishing secure link to official servers")) {
       Log-Add 'sys' $l; Start-Sleep -Milliseconds 90
     }
 
@@ -631,9 +772,11 @@
     Refresh-Path
     $os = try { (Get-CimInstance Win32_OperatingSystem).Caption } catch { 'Windows' }
     $U.Os = "$os $Mid $Arch$(if ($Demo) { " $Mid DEMO MODE" })"
-    $c0 = [bool](Find-Claude); $g0 = Has 'git'; $n0 = (Node-Major) -ge $NodeMajorMin; $f0 = Has 'firebase.cmd'
+    $app0 = if ($IsCodex) { Find-Codex } else { Find-Claude }
+    $c0 = [bool]$app0; $g0 = Has 'git'; $n0 = (Node-Major) -ge $NodeMajorMin; $f0 = Has 'firebase.cmd'
     if ($Demo) { $c0 = $false; $g0 = $false; $n0 = $false; $f0 = $false }
-    $Steps[0].Detail = if ($c0) { '이미 있어요' } else { '→ 설치 예정' }
+    $appVer = if ($app0 -and $app0.Package) { " $Mid v$($app0.Package.Version)" } else { '' }
+    $Steps[0].Detail = if ($c0) { "이미 있어요$appVer" } else { '→ 설치 예정' }
     $Steps[1].Detail = if ($g0) { "이미 있어요 $Mid $(Ver 'git')" } else { '→ 설치 예정' }
     $Steps[2].Detail = if ($n0) { "이미 있어요 $Mid $(Ver 'node' '-v')" } else { "→ v$NodeMajorWanted 설치 예정" }
     $Steps[3].Detail = if ($f0) { "이미 있어요 $Mid $(Ver 'firebase.cmd')" } else { '→ 설치 예정' }
@@ -646,8 +789,10 @@
     Log-Add 'sys' '> ONLINE'
     Info "예상 시간 10~15분 $Mid 창을 닫지 말고 기다려 주세요"
 
-    Step 'CLAUDE DESKTOP APP'
-    if ($c0) { Done '이미 설치되어 있어요' } else { Install-Claude; Done 'Claude 앱 설치 완료' }
+    Step $Steps[0].Title
+    if ($c0) { Done "이미 설치되어 있어요$appVer" }
+    elseif ($IsCodex) { Install-Codex; Done 'ChatGPT 앱(Codex) 설치 완료' }
+    else { Install-Claude; Done 'Claude 앱 설치 완료' }
 
     Step 'GIT'
     if ($g0) { Done "이미 설치되어 있어요 $Mid $(Ver 'git')" }
@@ -682,10 +827,16 @@
     }
     Done '로그인 완료'
 
-    Step 'CLAUDE BYPASS SETTING'
-    Info 'Claude 앱을 잠깐 껐다가 다시 켤게요'
-    if (Enable-BypassSetting) { Done '"권한 우회 모드 허용" 켜짐' } else { Warn '자동 설정이 안 됐어요. 안내문 그림대로 직접 켜 주세요.' }
-    if (-not $Demo) { $app = Find-Claude; if ($app) { Start-Claude $app } }
+    Step $Steps[5].Title
+    if ($IsCodex) {
+      Info 'ChatGPT 앱이 켜져 있으면 잠깐 껐다가 다시 켤게요'
+      if (Enable-CodexFullAccess) { Done 'Codex 승인 없이 실행 (Full access)' } else { Warn '자동 설정이 안 됐어요. Codex 입력창 아래 권한을 Full access 로 바꿔 주세요.' }
+      if (-not $Demo) { $app = Find-Codex; if ($app) { Start-App $app 'ChatGPT' } }
+    } else {
+      Info 'Claude 앱을 잠깐 껐다가 다시 켤게요'
+      if (Enable-BypassSetting) { Done '"권한 우회 모드 허용" 켜짐' } else { Warn '자동 설정이 안 됐어요. 안내문 그림대로 직접 켜 주세요.' }
+      if (-not $Demo) { $app = Find-Claude; if ($app) { Start-Claude $app } }
+    }
 
     Step 'FIREBASE CONSOLE'
     Info '브라우저에서 Firebase 콘솔을 열게요. 약관이 나오면 동의만 해 주세요'
@@ -705,7 +856,7 @@
     WL ''
     WL "  $Rd$Bold$No 문제가 생겼어요$R $Rd$msg$R"
     WL "    $Gy$Pipe$R 한 번 더 실행해도 괜찮아요. 이미 끝난 단계는 건너뛰어요"
-    WL "    $Gy$Pipe$R 이 창을 캡처해서 Claude 앱에 `"이런 화면이 나왔어. 어떻게 해?`" 라고 물어보세요"
+    WL "    $Gy$Pipe$R 이 창을 캡처해서 $(if ($Tool -eq 'codex') { 'ChatGPT' } else { 'Claude' }) 앱에 `"이런 화면이 나왔어. 어떻게 해?`" 라고 물어보세요"
     WL "    $Gy$Pipe$R 그래도 안 되면 단톡방에 캡처와 함께 남겨 주세요"
   }
   finally {
