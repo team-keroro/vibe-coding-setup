@@ -251,10 +251,10 @@
     if ($Demo) { Uac; Demo-Wait 'Node.js 지우는 중' 3; Demo-Wait 'npm 폴더 정리 중' 1; return }
     $entries = @(Find-Node)
     if ($entries.Count -gt 0) { Uac }
-    foreach ($e in $entries) {
-      $p = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/x', $e.PSChildName, '/passive', '/norestart' -Verb RunAs -PassThru
+    foreach ($entry in $entries) {
+      $p = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/x', $entry.PSChildName, '/passive', '/norestart' -Verb RunAs -PassThru
       $null = $p.Handle
-      $code = Wait-Process-Ui $p "Node.js $($e.DisplayVersion) 지우는 중"
+      $code = Wait-Process-Ui $p "Node.js $($entry.DisplayVersion) 지우는 중"
       if ($code -ne 0 -and $code -ne 3010 -and $code -ne 1605) { throw "Node.js 를 지우지 못했어요 (코드 $code)." }
     }
     foreach ($d in @("$env:APPDATA\npm", "$env:APPDATA\npm-cache", "$env:LOCALAPPDATA\npm-cache")) {
@@ -266,11 +266,11 @@
     if ($Demo) { Uac; Demo-Wait 'Git 지우는 중' 3; return }
     $entries = @(Find-Git)
     if ($entries.Count -gt 0) { Uac }
-    foreach ($e in $entries) {
-      $exe = (Split-Command $e.UninstallString)[0]
+    foreach ($entry in $entries) {
+      $exe = (Split-Command $entry.UninstallString)[0]
       $p = Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -Verb RunAs -PassThru
       $null = $p.Handle
-      $code = Wait-Process-Ui $p "Git $($e.DisplayVersion) 지우는 중"
+      $code = Wait-Process-Ui $p "Git $($entry.DisplayVersion) 지우는 중"
       if ($code -ne 0) { throw "Git 을 지우지 못했어요 (코드 $code)." }
     }
     # The Inno Setup uninstaller relaunches itself from TEMP, so wait until the entry is really gone.
@@ -390,10 +390,10 @@
         for ($i = 0; $i -lt $Items.Count; $i++) {
           $it = $Items[$i]
           $box = if ($it.On) { "$Mg$ChkOn$R" } else { "$Gy$ChkOff$R" }
-          $ptr = if ($i -eq $sel) { "$Cy$Ptr$R" } else { ' ' }
+          $pointer = if ($i -eq $sel) { "$Cy$Ptr$R" } else { ' ' }
           $name = if ($i -eq $sel) { "$Cy$Bold$($it.Name)$R" } else { "$Wh$($it.Name)$R" }
           $state = if ($it.Found) { "$Gr" + '설치됨' + "$R" } else { "$Dim$Gy" + '없음' + "$R" }
-          $lines += "    $ptr $box $name  $Gy$($it.Desc)$R  $state"
+          $lines += "    $pointer $box $name  $Gy$($it.Desc)$R  $state"
         }
         $count = @($Items | Where-Object { $_.On }).Count
         $lines += ''
